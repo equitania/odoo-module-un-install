@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="odoo-module-un-install-equitania",
-    version="0.0.1",
+    version="0.0.2",
     author="Lukas von Ehr - Equitania Software GmbH",
     author_email="l.von.ehr@equitania.de",
     description="A package to un/install modules in Odoo",

@@ -5,7 +5,7 @@
 import urllib
 import odoorpc
 import sys
-import exceptions
+from . import exceptions
 
 
 class OdooConnection:
@@ -67,10 +67,16 @@ class OdooConnection:
 
     def install_module(self, module_name):
         module_object = self._get_module_object(module_name)
-        module_object.button_immediate_install()
-        print(module_name + " installed")
+        if module_object.state == "uninstalled":
+            module_object.button_immediate_install()
+            print(module_name + " installed")
+        else:
+            print(module_name + " already installed")
 
     def uninstall_module(self, module_name):
         module_object = self._get_module_object(module_name)
-        module_object.button_immediate_uninstall()
-        print(module_name + " uninstalled")
+        if module_object.state == "installed":
+            module_object.button_immediate_uninstall()
+            print(module_name + " uninstalled")
+        else:
+            print(module_name + " already uninstalled")

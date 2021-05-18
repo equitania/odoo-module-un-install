@@ -1,0 +1,6 @@
+Install:
+  - moduleName1
+  - moduleName2
+Uninstall:
+  - moduleName3
+  - moduleName4

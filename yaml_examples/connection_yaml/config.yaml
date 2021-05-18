@@ -1,0 +1,8 @@
+---
+# Server configuration
+Server:
+    url: https://odoo.com                             # URL to Odoo - for localhost write http://localhost
+    port: 443                                         # Port of Odoo - Remote over SSL write 443 - for localhost write 8069 or other Odoo port
+    user: admin                                       # Your Odoo admin-user or user with setting rights
+    password: pw                                      # Password for the user
+    database: db                                      # Name of the Odoo database

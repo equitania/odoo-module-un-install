@@ -8,9 +8,9 @@ It is a helper tool for our Odoo modules. https://www.myodoo.de/myodoo-grundpake
 ### Odoo-module-un-install requires:
 
 - Python (>= 3.6)
-- click (>= 7.1.2)
-- OdooRPC (>= 0.7.0)
-- PyYaml (>= 3.12)
+- click (>= 8.1.3)
+- OdooRPC (>= 0.8.0)
+- PyYaml (>= 6.0)
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install odoo-module-un-install.
 

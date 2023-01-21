@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="odoo-module-un-install-equitania",
-    version="0.0.3",
+    version="0.0.4",
     author="Equitania Software GmbH",
     author_email="info@equitania.de",
     description="A package to un/install modules in Odoo",
@@ -23,8 +23,8 @@ setuptools.setup(
     odoo-un-install=odoo_module_un_install.odoo_module_un_install:start_odoo_module_un_install
     ''',
     install_requires=[
-        'OdooRPC>=0.8.0',
+        'OdooRPC>=0.9.0',
         'click>=8.1.3',
-        'PyYaml>=6.0'
+        'PyYaml>=5.4.1'
     ]
 )

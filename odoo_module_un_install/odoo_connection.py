@@ -70,13 +70,17 @@ class OdooConnection:
         if module_object.state == "uninstalled":
             module_object.button_immediate_install()
             print(module_name + " installed")
-        else:
+        elif module_object.state == "installed":
             print(module_name + " already installed")
+        else:
+            print(module_name + " not found")
 
     def uninstall_module(self, module_name):
         module_object = self._get_module_object(module_name)
         if module_object.state == "installed":
             module_object.button_immediate_uninstall()
             print(module_name + " uninstalled")
-        else:
+        elif module_object.state == "uninstalled":
             print(module_name + " already uninstalled")
+        else:
+            print(module_name + " not found")

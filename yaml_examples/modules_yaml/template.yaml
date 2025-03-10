@@ -1,6 +1,11 @@
+# Modules to install or update
+# When using --update_modules, modules listed here will be updated if already installed
 Install:
   - moduleName1
   - moduleName2
+
+# Modules to uninstall
+# These modules will be uninstalled when using --uninstall_modules
 Uninstall:
   - moduleName3
   - moduleName4

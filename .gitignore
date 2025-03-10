@@ -133,3 +133,5 @@ dmypy.json
 # VSCode
 .vscode
 .vscode/settings.json
+
+odoo_module_un_install.log

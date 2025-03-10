@@ -1,11 +1,12 @@
 import setuptools
+from odoo_module_un_install.version import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="odoo-module-un-install-equitania",
-    version="0.0.5",
+    version=__version__,
     author="Equitania Software GmbH",
     author_email="info@equitania.de",
     description="A package to un/install modules in Odoo",
@@ -17,14 +18,17 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     entry_points='''
     [console_scripts]
-    odoo-un-install=odoo_module_un_install.odoo_module_un_install:start_odoo_module_un_install
+    odoo-un-install=odoo_module_un_install.odoo_module_un_install:cli
     ''',
     install_requires=[
-        'OdooRPC>=0.9.0',
-        'click>=8.1.3',
-        'PyYaml>=5.4.1'
+        'OdooRPC>=0.10.1',
+        'click>=8.1.8',
+        'PyYaml>=6.0.2',
+        'colorama>=0.4.4',
+        'tqdm>=4.62.0',
+        'keyring>=23.0.0'
     ]
 )

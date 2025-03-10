@@ -1,0 +1,37 @@
+# Modules to install and update
+# 
+# This section is used for:
+# - Installing new modules with --install_modules
+# - Updating existing modules with --update_modules
+# - Dependency analysis with --check_dependencies
+Install:
+  # Core modules
+  - base
+  - web
+  - mail
+  
+  # Accounting modules
+  - account
+  - account_invoicing
+  
+  # CRM modules
+  - crm
+  - crm_livechat
+  
+  # Website modules
+  - website
+  - website_sale
+  - website_blog
+
+# Modules to uninstall
+#
+# When using --uninstall_modules with --check_dependencies, 
+# the tool will analyze dependencies and warn if other modules depend on these
+Uninstall:
+  # Unnecessary modules
+  - mail_bot
+  - website_twitter
+  - website_rating
+  
+  # Legacy modules
+  - old_custom_module 

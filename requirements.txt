@@ -1,0 +1,14 @@
+# Core dependencies
+odoorpc>=0.10.1
+PyYAML>=6.0.2
+click>=8.1.8
+
+# Enhanced console output
+colorama>=0.4.4
+tqdm>=4.62.0
+
+# Secure credential management
+keyring>=23.0.0
+
+# Logging and utilities
+python-dateutil>=2.8.2 

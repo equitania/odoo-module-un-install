@@ -73,7 +73,7 @@ odoo-un-install export [OPTIONS]
 $ odoo-un-install run --help
 
 Options:
-  --server_path DIRECTORY  Path to folder containing server configuration files
+  --server_path DIRECTORY  Path to folder containing .env server configuration files
   --module_path DIRECTORY  Path to folder containing module configuration files
   --uninstall_modules      Uninstall modules defined in "Uninstall" section
   --install_modules        Install modules defined in "Install" section
@@ -92,7 +92,7 @@ Options:
 $ odoo-un-install status --help
 
 Options:
-  --server_path DIRECTORY  Path to folder containing server configuration files
+  --server_path DIRECTORY  Path to folder containing .env server configuration files
   -v, --verbose            Enable verbose output for debugging
   --help                   Show this message and exit
 ```
@@ -103,7 +103,7 @@ Options:
 $ odoo-un-install export --help
 
 Options:
-  --server_path DIRECTORY  Path to folder containing server configuration files
+  --server_path DIRECTORY  Path to folder containing .env server configuration files
   --output FILE            Output YAML file path
   --include-base           Include base Odoo modules (default: exclude)
   --states TEXT            Module states to export (comma-separated)

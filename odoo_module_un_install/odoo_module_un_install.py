@@ -78,8 +78,8 @@ def cli():
 
 
 @cli.command('run', help="Run module operations on Odoo servers")
-@click.option('--server_path', 
-              help='Path to folder containing server configuration YAML files',
+@click.option('--server_path',
+              help='Path to folder containing .env server configuration files',
               prompt='Please enter the path to your server configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
 @click.option('--module_path', 
@@ -316,7 +316,7 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
 # Add a status command to just show module status without modifications
 @cli.command('status', help="Show module status information for Odoo servers")
 @click.option('--server_path',
-              help='Path to folder containing server configuration YAML files',
+              help='Path to folder containing .env server configuration files',
               prompt='Please enter the path to your server configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
 @click.option('--verbose', '-v',
@@ -368,7 +368,7 @@ def status(server_path, verbose):
 
 @cli.command('export', help="Export installed modules to YAML file")
 @click.option('--server_path',
-              help='Path to folder containing server configuration files',
+              help='Path to folder containing .env server configuration files',
               prompt='Please enter the path to your server configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
 @click.option('--output',

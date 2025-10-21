@@ -529,6 +529,62 @@ def display_module_status(connection: OdooConnection) -> None:
     print(f"\n{Fore.CYAN}Total: {total_modules}{Style.RESET_ALL}")
 
 
+def _translate_category_to_english(category: str) -> str:
+    """Translate Odoo category names to English.
+
+    Args:
+        category: Category name (may be in German or other language).
+
+    Returns:
+        English category name.
+    """
+    # German to English mapping
+    category_mapping = {
+        # German translations
+        'Rechnungswesen': 'Accounting',
+        'Buchhaltung': 'Accounting',
+        'Verkauf': 'Sales',
+        'Vertrieb': 'Sales',
+        'Einkauf': 'Purchase',
+        'Beschaffung': 'Purchase',
+        'Lager': 'Inventory',
+        'Bestand': 'Inventory',
+        'Website': 'Website',
+        'Webseite': 'Website',
+        'Personalwesen': 'Human Resources',
+        'Personal': 'Human Resources',
+        'Projekt': 'Project',
+        'Fertigung': 'Manufacturing',
+        'Produktion': 'Manufacturing',
+        'Marketing': 'Marketing',
+        'Verwaltung': 'Administration',
+        'Einstellungen': 'Settings',
+        'Technik': 'Technical',
+        'Versteckt': 'Hidden',
+        'Nicht kategorisiert': 'Uncategorized',
+        # Keep English categories as-is
+        'Accounting': 'Accounting',
+        'Sales': 'Sales',
+        'Purchase': 'Purchase',
+        'Inventory': 'Inventory',
+        'Human Resources': 'Human Resources',
+        'Project': 'Project',
+        'Manufacturing': 'Manufacturing',
+        'CRM': 'CRM',
+        'Settings': 'Settings',
+        'Technical': 'Technical',
+        'Administration': 'Administration',
+        'Hidden': 'Hidden',
+        'Uncategorized': 'Uncategorized',
+        'Extra Tools': 'Extra Tools',
+        'Point of Sale': 'Point of Sale',
+        'Productivity': 'Productivity',
+        'Services': 'Services',
+    }
+
+    return category_mapping.get(category, category)
+
+
 def export_modules_to_yaml(
     connection: OdooConnection,
     output_file: Union[str, Path],
@@ -576,8 +632,10 @@ def export_modules_to_yaml(
             if state in modules_status:
                 all_modules.extend(modules_status[state])
 
-        # Filter modules
-        filtered_modules = []
+        # Filter and categorize modules
+        categorized_modules = {}
+        total_count = 0
+
         for module in all_modules:
             module_name = module['name']
             # Exclude base modules if requested
@@ -586,36 +644,75 @@ def export_modules_to_yaml(
             # Exclude modules starting with 'l10n_' (localizations) if exclude_base
             if exclude_base and module_name.startswith('l10n_'):
                 continue
-            filtered_modules.append(module_name)
 
-        # Sort modules alphabetically
-        filtered_modules.sort()
+            # Get category
+            category = module.get('category', 'Uncategorized')
 
-        # Create YAML structure
-        yaml_content = {
-            'Install': filtered_modules,
-            'Uninstall': []
-        }
+            # Translate category to English
+            category = _translate_category_to_english(category)
+
+            if not category or category == 'Uncategorized':
+                # Try to infer category from module name prefix
+                if module_name.startswith('account_'):
+                    category = 'Accounting'
+                elif module_name.startswith('sale_') or module_name.startswith('sales_'):
+                    category = 'Sales'
+                elif module_name.startswith('purchase_'):
+                    category = 'Purchase'
+                elif module_name.startswith('stock_'):
+                    category = 'Inventory'
+                elif module_name.startswith('website_'):
+                    category = 'Website'
+                elif module_name.startswith('crm_'):
+                    category = 'CRM'
+                elif module_name.startswith('hr_'):
+                    category = 'Human Resources'
+                elif module_name.startswith('project_'):
+                    category = 'Project'
+                else:
+                    category = 'Other'
+
+            if category not in categorized_modules:
+                categorized_modules[category] = []
+            categorized_modules[category].append(module_name)
+            total_count += 1
+
+        # Sort categories alphabetically
+        sorted_categories = sorted(categorized_modules.keys())
+
+        # Sort modules within each category
+        for category in sorted_categories:
+            categorized_modules[category].sort()
 
         # Add comment header
         header_comment = (
             f"# Exported modules from {connection.cleaned_url}\n"
             f"# Server: Odoo {connection.version}\n"
             f"# Database: {connection.database}\n"
-            f"# Total modules: {len(filtered_modules)}\n"
+            f"# Total modules: {total_count}\n"
             f"# States included: {', '.join(include_states)}\n"
             f"# Base modules excluded: {exclude_base}\n"
             f"#\n"
             f"# Generated by odoo-module-un-install\n\n"
         )
 
-        # Write to file
+        # Write to file with structured format
         with open(output_file, 'w') as f:
             f.write(header_comment)
-            yaml.dump(yaml_content, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            f.write("Install:\n")
 
-        print(f"{Fore.GREEN}✓ Exported {len(filtered_modules)} modules to {output_file}{Style.RESET_ALL}")
-        logger.info(f"Exported {len(filtered_modules)} modules to {output_file}")
+            # Write modules by category
+            for category in sorted_categories:
+                modules = categorized_modules[category]
+                f.write(f"  # {category} ({len(modules)} modules)\n")
+                for module in modules:
+                    f.write(f"  - {module}\n")
+                f.write("\n")
+
+            f.write("Uninstall: []\n")
+
+        print(f"{Fore.GREEN}✓ Exported {total_count} modules to {output_file}{Style.RESET_ALL}")
+        logger.info(f"Exported {total_count} modules to {output_file}")
         return True
 
     except Exception as e:

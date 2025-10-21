@@ -366,7 +366,7 @@ class OdooConnection:
         """
         try:
             MODULES = self.connection.env['ir.module.module']
-            modules = MODULES.search_read([], ['name', 'state', 'installed_version'])
+            modules = MODULES.search_read([], ['name', 'state', 'installed_version', 'category_id'])
 
             result = {
                 'installed': [],
@@ -379,9 +379,16 @@ class OdooConnection:
             for module in modules:
                 state = module['state']
                 if state in result:
+                    category_name = module.get('category_id', [False, 'Uncategorized'])
+                    if isinstance(category_name, list) and len(category_name) > 1:
+                        category_name = category_name[1]
+                    elif not category_name:
+                        category_name = 'Uncategorized'
+
                     result[state].append({
                         'name': module['name'],
-                        'version': module.get('installed_version', 'N/A')
+                        'version': module.get('installed_version', 'N/A'),
+                        'category': category_name
                     })
 
             return result

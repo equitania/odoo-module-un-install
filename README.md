@@ -78,13 +78,13 @@ Optional arguments:
 ```
 ---
 
-## Example
+## Quick Start Example
 ```bash
-odoo-un-install --server_path=./connection_yaml --module_path=./module_yaml --uninstall_modules=y --install_modules=y
-# v12 basis dbs
-odoo-un-install --server_path=$HOME/gitbase/dev-helpers/yaml/v12-yaml-con --module_path=$HOME/gitbase/helper_script/v12/yaml --uninstall_modules=y --install_modules=y
-# v13 basis dbs
-odoo-un-install --server_path=$HOME/gitbase/dev-helpers/yaml/v13-yaml-con --module_path=$HOME/gitbase/helper_script/v13/yaml --uninstall_modules=y --install_modules=y
+# Basic usage with .env configuration
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --install_modules --uninstall_modules
+
+# Using custom configuration paths
+odoo-un-install run --server_path=$HOME/configs/servers --module_path=$HOME/configs/modules --install_modules --update_modules
 ```
 
 ## Module Update Guide
@@ -129,25 +129,9 @@ This will:
 
 ### Configuration Files
 
-The tool supports two configuration formats: **YAML** and **.env**. Both formats can be used simultaneously in the same directory.
-
-#### Server Configuration (YAML)
-
-Create YAML files in your server configuration folder:
-
-```yaml
-Server:
-  url: "https://your-odoo-server.com"
-  port: 443
-  user: "admin"
-  password: "your-password"  # Optional, can be entered interactively
-  database: "your-database"  # Optional, can be selected interactively
-  use_keyring: true          # Whether to store password in system keyring
-```
-
 #### Server Configuration (.env)
 
-Alternatively, create .env files for server configuration:
+Create .env files in your server configuration folder:
 
 ```bash
 # Required fields
@@ -186,35 +170,22 @@ Uninstall:
 
 ### Examples
 
-Basic usage with YAML configuration:
+Basic usage:
 
 ```bash
 # Install modules
-odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml --install_modules
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --install_modules
 
 # Uninstall modules
-odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml --uninstall_modules
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --uninstall_modules
 
 # Update modules
-odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml --update_modules
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --update_modules
 
 # Install and update modules with dependency checking
-odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml --install_modules --update_modules --check_dependencies
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --install_modules --update_modules --check_dependencies
 
 # Check module status
-odoo-un-install status --server_path=./connection_yaml
-```
-
-Basic usage with .env configuration:
-
-```bash
-# Using .env files (automatically detected)
-odoo-un-install run --server_path=./env_configs --module_path=./module_yaml --install_modules
-
-# Mix YAML and .env in same directory
-odoo-un-install run --server_path=./servers --module_path=./modules --install_modules --update_modules
-
-# Check status with .env configuration
 odoo-un-install status --server_path=./env_configs
 ```
 
@@ -222,13 +193,13 @@ Advanced examples:
 
 ```bash
 # Complete operation with all options
-odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml --uninstall_modules --install_modules --update_modules --check_dependencies --parallel --max_workers=10 --show_status --verbose
+odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --uninstall_modules --install_modules --update_modules --check_dependencies --parallel --max_workers=10 --show_status --verbose
 
-# v12 basis dbs with update
-odoo-un-install run --server_path=$HOME/gitbase/dev-helpers/yaml/v12-yaml-con --module_path=$HOME/gitbase/helper_script/v12/yaml --uninstall_modules --install_modules --update_modules
+# Multiple servers with update
+odoo-un-install run --server_path=$HOME/configs/odoo_servers --module_path=$HOME/configs/odoo_modules --uninstall_modules --install_modules --update_modules
 
-# v13 basis dbs with parallel processing
-odoo-un-install run --server_path=$HOME/gitbase/dev-helpers/yaml/v13-yaml-con --module_path=$HOME/gitbase/helper_script/v13/yaml --uninstall_modules --install_modules --update_modules --parallel
+# Parallel processing across multiple servers
+odoo-un-install run --server_path=$HOME/configs/odoo_servers --module_path=$HOME/configs/odoo_modules --uninstall_modules --install_modules --update_modules --parallel
 ```
 
 ## Security

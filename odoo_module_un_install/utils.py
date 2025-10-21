@@ -149,53 +149,6 @@ def parse_yaml_folder(path: Union[str, Path]) -> List[Dict[str, Any]]:
         raise
 
 
-def create_odoo_connection_from_yaml_object(yaml_object: Dict[str, Any]) -> Optional[OdooConnection]:
-    """Create an OdooConnection instance from a YAML configuration object.
-
-    Args:
-        yaml_object: Dictionary containing server configuration with keys:
-            - url: Server URL (required)
-            - port: Port number (optional, default: 0)
-            - user: Username (required)
-            - password: Password (optional)
-            - database: Database name (optional)
-            - use_keyring: Whether to use system keyring (optional, default: True)
-
-    Returns:
-        OdooConnection object if successful, None otherwise.
-
-    Raises:
-        ValueError: If required configuration keys are missing.
-    """
-    try:
-        server_config = yaml_object.get('Server', {})
-        url = server_config.get('url')
-        port = server_config.get('port', 0)
-        user = server_config.get('user')
-        password = server_config.get('password')
-        database = server_config.get('database')
-        use_keyring = server_config.get('use_keyring', True)
-
-        if not all([url, user]):
-            missing = []
-            if not url: missing.append('url')
-            if not user: missing.append('user')
-            raise ValueError(f"Missing required configuration: {', '.join(missing)}")
-
-        odoo_connection_object = OdooConnection(
-            url, port, user, password, database, use_keyring
-        )
-        return odoo_connection_object
-    except ValueError as e:
-        logger.error(f"Invalid YAML configuration: {e}")
-        print(f"{Fore.RED}Invalid configuration: {e}{Style.RESET_ALL}")
-        return None
-    except Exception as e:
-        logger.error(f"Error creating connection: {e}")
-        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
-        return None
-
-
 def parse_env_file(env_file: Union[str, Path]) -> Union[Dict[str, Any], bool]:
     """Parse .env file and return its contents as a dictionary.
 
@@ -355,13 +308,10 @@ def convert_all_yaml_objects(
 
 
 def collect_all_connections(path: Union[str, Path]) -> List[OdooConnection]:
-    """Parse configuration files (YAML or .env) and create OdooConnection objects.
-
-    This function supports both YAML and .env configuration formats. It will automatically
-    detect and parse both file types from the specified directory.
+    """Parse .env configuration files and create OdooConnection objects.
 
     Args:
-        path: Path to directory containing server configuration files (.yaml, .yml, or .env).
+        path: Path to directory containing .env server configuration files.
 
     Returns:
         List of OdooConnection objects.
@@ -370,50 +320,25 @@ def collect_all_connections(path: Union[str, Path]) -> List[OdooConnection]:
         PathDoesNotExistError: If the specified path does not exist.
 
     Example:
-        >>> # Supports both YAML and .env files
-        >>> connections = collect_all_connections('./config/servers')
+        >>> connections = collect_all_connections('./env_configs')
         >>> for conn in connections:
         ...     conn.login()
     """
     try:
-        all_connections = []
-
-        # Parse YAML files
-        try:
-            yaml_connection_objects = parse_yaml_folder(path)
-            yaml_connections = convert_all_yaml_objects(
-                yaml_connection_objects,
-                create_odoo_connection_from_yaml_object
-            )
-            all_connections.extend(yaml_connections)
-            if yaml_connections:
-                logger.info(f"Loaded {len(yaml_connections)} connection(s) from YAML files")
-        except exceptions.PathDoesNotExistError:
-            raise
-        except Exception as e:
-            logger.warning(f"Could not parse YAML files: {e}")
-
         # Parse .env files
-        try:
-            env_configs = parse_env_folder(path)
-            env_connections = convert_all_yaml_objects(
-                env_configs,
-                create_odoo_connection_from_env
-            )
-            all_connections.extend(env_connections)
-            if env_connections:
-                logger.info(f"Loaded {len(env_connections)} connection(s) from .env files")
-        except exceptions.PathDoesNotExistError:
-            if not all_connections:  # Only raise if no YAML files were found either
-                raise
-        except Exception as e:
-            logger.warning(f"Could not parse .env files: {e}")
+        env_configs = parse_env_folder(path)
+        connections = convert_all_yaml_objects(
+            env_configs,
+            create_odoo_connection_from_env
+        )
 
-        if not all_connections:
-            logger.warning("No valid connections created from configuration files")
-            print(f"{Fore.YELLOW}Warning: No valid connections created from configuration files{Style.RESET_ALL}")
+        if connections:
+            logger.info(f"Loaded {len(connections)} connection(s) from .env files")
+        else:
+            logger.warning("No valid connections created from .env files")
+            print(f"{Fore.YELLOW}Warning: No valid .env configuration files found in {path}{Style.RESET_ALL}")
 
-        return all_connections
+        return connections
     except exceptions.PathDoesNotExistError as ex:
         logger.error(f"Path error: {ex}")
         raise

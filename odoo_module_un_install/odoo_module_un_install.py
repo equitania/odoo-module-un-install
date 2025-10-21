@@ -22,11 +22,20 @@ logger = logging.getLogger(__name__)
 
 def welcome():
     """Display welcome message"""
+    # Box width: 54 characters (including borders)
+    welcome_text = "Welcome to the Odoo Module (Un)Install Tool!"
+    version_text = f"Version {__version__}"
+
+    # Calculate padding to center text
+    box_width = 52  # Inner width without borders
+    welcome_padding = (box_width - len(welcome_text)) // 2
+    version_padding = (box_width - len(version_text)) // 2
+
     print(f"""
-{Fore.CYAN}╔══════════════════════════════════════════════════╗
-║ {Fore.GREEN}Welcome to the Odoo Module (Un)Install Tool!{Fore.CYAN}       ║
-║ {Fore.YELLOW}Version {__version__}{Fore.CYAN}                                     ║
-╚══════════════════════════════════════════════════╝{Style.RESET_ALL}
+{Fore.CYAN}╔════════════════════════════════════════════════════╗
+║{' ' * welcome_padding}{Fore.GREEN}{welcome_text}{Fore.CYAN}{' ' * (box_width - len(welcome_text) - welcome_padding)}║
+║{' ' * version_padding}{Fore.YELLOW}{version_text}{Fore.CYAN}{' ' * (box_width - len(version_text) - version_padding)}║
+╚════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """)
 
 def display_summary(results, operation):

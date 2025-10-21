@@ -243,6 +243,57 @@ odoo-un-install export --server_path=./env_configs --output=upgrade_modules.yaml
 odoo-un-install export --server_path=./env_configs --output=multi_state.yaml --states="installed,to upgrade"
 ```
 
+**Export Output Format:**
+
+The export command generates a structured YAML file with modules organized by category:
+
+```yaml
+# Server: https://example.odoo.com
+# Database: production_db
+# Odoo Version: 18
+# Export Date: 2025-06-24 10:30:45
+# Total Modules: 45
+
+Install:
+  # Accounting (12 modules)
+  - account
+  - account_invoicing
+  - account_payment
+  - account_reports
+
+  # CRM (5 modules)
+  - crm
+  - crm_livechat
+  - crm_phone_validation
+
+  # Human Resources (8 modules)
+  - hr
+  - hr_attendance
+  - hr_holidays
+  - hr_recruitment
+
+  # Sales (10 modules)
+  - sale
+  - sale_management
+  - sale_crm
+  - sale_stock
+
+  # Website (10 modules)
+  - website
+  - website_blog
+  - website_crm
+  - website_sale
+
+Uninstall: []
+```
+
+**Features:**
+- Modules grouped and sorted by English category names
+- German category names automatically translated to English
+- Module count displayed for each category
+- Server and database information in header comments
+- Base Odoo modules excluded by default (use `--include-base` to include)
+
 Advanced examples:
 
 ```bash

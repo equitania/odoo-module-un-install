@@ -241,6 +241,96 @@ ODOO_USE_KEYRING=false
 
 **⚠️ Important:** Never commit .env files with passwords to version control! Add `*.env` to your `.gitignore` (excluding templates like `template.env.example`)
 
+## Local Testing
+
+### Development Installation
+
+```bash
+# 1. Clone or navigate to the project directory
+cd /path/to/odoo-module-un-install
+
+# 2. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On macOS/Linux
+# or on Windows: .venv\Scripts\activate
+
+# 3. Install dependencies with UV (recommended)
+pip install uv
+uv pip install -r requirements.txt
+
+# 4. Install package in editable mode
+uv pip install -e .
+
+# 5. Verify installation
+odoo-un-install --version
+odoo-un-install --help
+```
+
+### Test Configuration Setup
+
+```bash
+# Create test directories
+mkdir -p test_config/servers
+mkdir -p test_config/modules
+
+# Create test .env server configuration
+cat > test_config/servers/localhost.env << 'EOF'
+ODOO_URL=http://localhost
+ODOO_PORT=8069
+ODOO_USER=admin
+ODOO_PASSWORD=admin
+ODOO_DATABASE=test_db
+ODOO_USE_KEYRING=false
+EOF
+
+# Create test module YAML configuration
+cat > test_config/modules/test_modules.yaml << 'EOF'
+Install:
+  - base
+  - sale_management
+
+Uninstall:
+  - website_blog
+EOF
+```
+
+### Running Tests
+
+```bash
+# Test connection to server
+odoo-un-install status --server_path=test_config/servers
+
+# Test module installation with verbose output
+odoo-un-install run \
+  --server_path=test_config/servers \
+  --module_path=test_config/modules \
+  --install_modules \
+  --verbose
+
+# Test with example configurations
+odoo-un-install run \
+  --server_path=./env_examples \
+  --module_path=./yaml_examples/modules_yaml \
+  --install_modules \
+  --verbose
+
+# Run unit tests
+pytest tests/ -v
+
+# Run tests with coverage
+pytest --cov=odoo_module_un_install tests/
+```
+
+### Testing Checklist
+
+- ✅ Package installs without errors
+- ✅ CLI commands work (`--version`, `--help`)
+- ✅ .env files are parsed correctly
+- ✅ Connection to Odoo server succeeds
+- ✅ Module operations (install/uninstall/update) work
+- ✅ All unit tests pass (21/21)
+- ✅ Verbose logging shows detailed information
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.

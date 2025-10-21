@@ -67,19 +67,49 @@ odoo-un-install export [OPTIONS]
 
 ### Available Options:
 
-#### Global Options:
+#### Run Command Options:
 
 ```bash
-$ odoo-un-install --help
-usage: odoo-un-install [--help] [--server_path] [--module_path] [--uninstall_modules] [--install_modules]
+$ odoo-un-install run --help
+
+Options:
+  --server_path DIRECTORY  Path to folder containing server configuration files
+  --module_path DIRECTORY  Path to folder containing module configuration files
+  --uninstall_modules      Uninstall modules defined in "Uninstall" section
+  --install_modules        Install modules defined in "Install" section
+  --update_modules         Update modules defined in "Install" section
+  --check_dependencies     Check module dependencies before operations (recommended)
+  --parallel               Process modules in parallel for faster execution
+  --max_workers INTEGER    Maximum number of parallel workers [default: 5]
+  --show_status            Show detailed module status report after operations
+  -v, --verbose            Enable verbose output for debugging
+  --help                   Show this message and exit
 ```
+
+#### Status Command Options:
+
 ```bash
-Optional arguments:
-  --server_path       Server configuration folder
-  --module_path       Modules folder
-  --uninstall_modules Uninstall modules (y/n)
-  --install_modules   Install modules (y/n)
-  --help              Show this message and exit.
+$ odoo-un-install status --help
+
+Options:
+  --server_path DIRECTORY  Path to folder containing server configuration files
+  -v, --verbose            Enable verbose output for debugging
+  --help                   Show this message and exit
+```
+
+#### Export Command Options:
+
+```bash
+$ odoo-un-install export --help
+
+Options:
+  --server_path DIRECTORY  Path to folder containing server configuration files
+  --output FILE            Output YAML file path
+  --include-base           Include base Odoo modules (default: exclude)
+  --states TEXT            Module states to export (comma-separated)
+                           Options: installed,to upgrade,to install,to remove
+  -v, --verbose            Enable verbose output for debugging
+  --help                   Show this message and exit
 ```
 ---
 

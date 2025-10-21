@@ -14,6 +14,7 @@ from pathlib import Path
 import concurrent.futures
 from tqdm import tqdm
 from colorama import Fore, Style, init
+from dotenv import dotenv_values
 from . import exceptions
 from .odoo_connection import OdooConnection
 
@@ -195,6 +196,139 @@ def create_odoo_connection_from_yaml_object(yaml_object: Dict[str, Any]) -> Opti
         return None
 
 
+def parse_env_file(env_file: Union[str, Path]) -> Union[Dict[str, Any], bool]:
+    """Parse .env file and return its contents as a dictionary.
+
+    Args:
+        env_file: Path to the .env file to parse.
+
+    Returns:
+        Parsed .env content as dictionary with server configuration, or False on error.
+
+    Example:
+        >>> config = parse_env_file('.env')
+        >>> print(config['url'])
+        https://odoo.com
+    """
+    try:
+        if not os.path.exists(env_file):
+            raise FileNotFoundError(f".env file not found: {env_file}")
+
+        # Load .env file
+        env_values = dotenv_values(env_file)
+
+        # Convert to server config format (compatible with YAML structure)
+        server_config = {
+            'url': env_values.get('ODOO_URL'),
+            'port': int(env_values.get('ODOO_PORT', 0)) if env_values.get('ODOO_PORT') else 0,
+            'user': env_values.get('ODOO_USER'),
+            'password': env_values.get('ODOO_PASSWORD'),
+            'database': env_values.get('ODOO_DATABASE'),
+            'use_keyring': env_values.get('ODOO_USE_KEYRING', 'true').lower() in ('true', '1', 'yes')
+        }
+
+        return server_config
+
+    except FileNotFoundError as e:
+        logger.error(f".env file not found: {env_file}")
+        print(f"{Fore.RED}File not found: {env_file}{Style.RESET_ALL}")
+        return False
+    except Exception as e:
+        logger.error(f"Error parsing .env file {env_file}: {e}")
+        print(f"{Fore.RED}Error parsing {env_file}: {e}{Style.RESET_ALL}")
+        return False
+
+
+def parse_env_folder(path: Union[str, Path]) -> List[Dict[str, Any]]:
+    """Parse all .env files in a directory and return their contents.
+
+    Args:
+        path: Path to directory containing .env files.
+
+    Returns:
+        List of parsed .env configurations.
+
+    Raises:
+        PathDoesNotExistError: If the specified path does not exist.
+
+    Example:
+        >>> configs = parse_env_folder('./env_configs')
+        >>> for config in configs:
+        ...     print(config['url'])
+    """
+    env_configs = []
+    try:
+        if not os.path.exists(path):
+            raise exceptions.PathDoesNotExistError(f"Path does not exist: {path}")
+
+        for file in os.listdir(path):
+            if file.endswith(".env"):
+                env_config = parse_env_file(os.path.join(path, file))
+                if env_config:
+                    env_configs.append(env_config)
+                    logger.info(f"Parsed .env file: {file}")
+
+        if not env_configs:
+            logger.warning(f"No valid .env files found in {path}")
+            print(f"{Fore.YELLOW}Warning: No valid .env files found in {path}{Style.RESET_ALL}")
+
+        return env_configs
+    except exceptions.PathDoesNotExistError as e:
+        logger.error(str(e))
+        print(f"{Fore.RED}{str(e)}{Style.RESET_ALL}")
+        raise
+
+
+def create_odoo_connection_from_env(env_config: Dict[str, Any]) -> Optional[OdooConnection]:
+    """Create an OdooConnection instance from a .env configuration.
+
+    Args:
+        env_config: Dictionary containing server configuration with keys:
+            - url: Server URL (required)
+            - port: Port number (optional, default: 0)
+            - user: Username (required)
+            - password: Password (optional)
+            - database: Database name (optional)
+            - use_keyring: Whether to use system keyring (optional, default: True)
+
+    Returns:
+        OdooConnection object if successful, None otherwise.
+
+    Raises:
+        ValueError: If required configuration keys are missing.
+
+    Example:
+        >>> env_config = {'url': 'example.com', 'user': 'admin', 'port': 443}
+        >>> conn = create_odoo_connection_from_env(env_config)
+    """
+    try:
+        url = env_config.get('url')
+        port = env_config.get('port', 0)
+        user = env_config.get('user')
+        password = env_config.get('password')
+        database = env_config.get('database')
+        use_keyring = env_config.get('use_keyring', True)
+
+        if not all([url, user]):
+            missing = []
+            if not url: missing.append('ODOO_URL')
+            if not user: missing.append('ODOO_USER')
+            raise ValueError(f"Missing required .env variables: {', '.join(missing)}")
+
+        odoo_connection_object = OdooConnection(
+            url, port, user, password, database, use_keyring
+        )
+        return odoo_connection_object
+    except ValueError as e:
+        logger.error(f"Invalid .env configuration: {e}")
+        print(f"{Fore.RED}Invalid configuration: {e}{Style.RESET_ALL}")
+        return None
+    except Exception as e:
+        logger.error(f"Error creating connection from .env: {e}")
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
+        return None
+
+
 def convert_all_yaml_objects(
     yaml_objects: List[Dict[str, Any]],
     converting_function: Callable[[Dict[str, Any]], Any]
@@ -221,10 +355,13 @@ def convert_all_yaml_objects(
 
 
 def collect_all_connections(path: Union[str, Path]) -> List[OdooConnection]:
-    """Parse YAML configuration files and create OdooConnection objects.
+    """Parse configuration files (YAML or .env) and create OdooConnection objects.
+
+    This function supports both YAML and .env configuration formats. It will automatically
+    detect and parse both file types from the specified directory.
 
     Args:
-        path: Path to directory containing server configuration YAML files.
+        path: Path to directory containing server configuration files (.yaml, .yml, or .env).
 
     Returns:
         List of OdooConnection objects.
@@ -233,22 +370,50 @@ def collect_all_connections(path: Union[str, Path]) -> List[OdooConnection]:
         PathDoesNotExistError: If the specified path does not exist.
 
     Example:
+        >>> # Supports both YAML and .env files
         >>> connections = collect_all_connections('./config/servers')
         >>> for conn in connections:
         ...     conn.login()
     """
     try:
-        yaml_connection_objects = parse_yaml_folder(path)
-        eq_connection_objects = convert_all_yaml_objects(
-            yaml_connection_objects,
-            create_odoo_connection_from_yaml_object
-        )
+        all_connections = []
 
-        if not eq_connection_objects:
+        # Parse YAML files
+        try:
+            yaml_connection_objects = parse_yaml_folder(path)
+            yaml_connections = convert_all_yaml_objects(
+                yaml_connection_objects,
+                create_odoo_connection_from_yaml_object
+            )
+            all_connections.extend(yaml_connections)
+            if yaml_connections:
+                logger.info(f"Loaded {len(yaml_connections)} connection(s) from YAML files")
+        except exceptions.PathDoesNotExistError:
+            raise
+        except Exception as e:
+            logger.warning(f"Could not parse YAML files: {e}")
+
+        # Parse .env files
+        try:
+            env_configs = parse_env_folder(path)
+            env_connections = convert_all_yaml_objects(
+                env_configs,
+                create_odoo_connection_from_env
+            )
+            all_connections.extend(env_connections)
+            if env_connections:
+                logger.info(f"Loaded {len(env_connections)} connection(s) from .env files")
+        except exceptions.PathDoesNotExistError:
+            if not all_connections:  # Only raise if no YAML files were found either
+                raise
+        except Exception as e:
+            logger.warning(f"Could not parse .env files: {e}")
+
+        if not all_connections:
             logger.warning("No valid connections created from configuration files")
             print(f"{Fore.YELLOW}Warning: No valid connections created from configuration files{Style.RESET_ALL}")
 
-        return eq_connection_objects
+        return all_connections
     except exceptions.PathDoesNotExistError as ex:
         logger.error(f"Path error: {ex}")
         raise

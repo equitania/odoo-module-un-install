@@ -114,3 +114,104 @@ def test_convert_all_yaml_objects_with_none():
     result = utils.convert_all_yaml_objects(yaml_objects, process_value)
     # None values should be filtered out
     assert result == [1, 3]
+
+
+@pytest.mark.unit
+def test_parse_env_file_valid():
+    """Test parsing valid .env file."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        f.write("ODOO_URL=https://example.com\n")
+        f.write("ODOO_PORT=443\n")
+        f.write("ODOO_USER=admin\n")
+        f.write("ODOO_PASSWORD=secret\n")
+        f.write("ODOO_DATABASE=testdb\n")
+        f.write("ODOO_USE_KEYRING=true\n")
+        temp_file = f.name
+
+    try:
+        result = utils.parse_env_file(temp_file)
+        assert result is not False
+        assert result['url'] == 'https://example.com'
+        assert result['port'] == 443
+        assert result['user'] == 'admin'
+        assert result['password'] == 'secret'
+        assert result['database'] == 'testdb'
+        assert result['use_keyring'] is True
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.unit
+def test_parse_env_file_minimal():
+    """Test parsing .env file with only required fields."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        f.write("ODOO_URL=http://localhost\n")
+        f.write("ODOO_USER=admin\n")
+        temp_file = f.name
+
+    try:
+        result = utils.parse_env_file(temp_file)
+        assert result is not False
+        assert result['url'] == 'http://localhost'
+        assert result['user'] == 'admin'
+        assert result['port'] == 0  # Default value
+        assert result['password'] is None
+        assert result['database'] is None
+        assert result['use_keyring'] is True  # Default value
+    finally:
+        os.unlink(temp_file)
+
+
+@pytest.mark.unit
+def test_parse_env_file_nonexistent():
+    """Test parsing non-existent .env file."""
+    result = utils.parse_env_file('/nonexistent/file.env')
+    assert result is False
+
+
+@pytest.mark.unit
+def test_parse_env_folder():
+    """Test parsing folder with .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create valid .env files
+        env1 = os.path.join(tmpdir, 'production.env')
+        env2 = os.path.join(tmpdir, 'staging.env')
+
+        with open(env1, 'w') as f:
+            f.write("ODOO_URL=https://production.com\n")
+            f.write("ODOO_USER=admin\n")
+
+        with open(env2, 'w') as f:
+            f.write("ODOO_URL=https://staging.com\n")
+            f.write("ODOO_USER=admin\n")
+
+        result = utils.parse_env_folder(tmpdir)
+        assert len(result) == 2
+        assert any(obj['url'] == 'https://production.com' for obj in result)
+        assert any(obj['url'] == 'https://staging.com' for obj in result)
+
+
+@pytest.mark.unit
+def test_parse_env_folder_mixed():
+    """Test parsing folder with both YAML and .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create .env file
+        env_file = os.path.join(tmpdir, 'server.env')
+        with open(env_file, 'w') as f:
+            f.write("ODOO_URL=https://env-server.com\n")
+            f.write("ODOO_USER=admin\n")
+
+        # Create YAML file
+        yaml_file = os.path.join(tmpdir, 'server.yaml')
+        with open(yaml_file, 'w') as f:
+            yaml.dump({'Server': {'url': 'https://yaml-server.com', 'user': 'admin'}}, f)
+
+        # Test env parsing
+        env_result = utils.parse_env_folder(tmpdir)
+        assert len(env_result) >= 1
+        assert any(obj['url'] == 'https://env-server.com' for obj in env_result)
+
+        # Test yaml parsing
+        yaml_result = utils.parse_yaml_folder(tmpdir)
+        assert len(yaml_result) >= 1
+        assert any(obj['Server']['url'] == 'https://yaml-server.com' for obj in yaml_result)

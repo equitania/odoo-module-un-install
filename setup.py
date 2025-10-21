@@ -35,8 +35,10 @@ setuptools.setup(
         'OdooRPC>=0.10.1',
         'click>=8.1.8',
         'PyYaml>=6.0.2',
+        'python-dotenv>=1.0.0',
         'colorama>=0.4.4',
         'tqdm>=4.62.0',
-        'keyring>=23.0.0'
+        'keyring>=23.0.0',
+        'python-dateutil>=2.8.2'
     ]
 )

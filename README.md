@@ -27,6 +27,7 @@ A powerful command-line tool for managing Odoo modules across multiple server in
 - Python (>= 3.8)
 - OdooRPC (>= 0.10.1)
 - PyYaml (>= 6.0.2)
+- python-dotenv (>= 1.0.0)
 - click (>= 8.1.8)
 - colorama (>= 0.4.4)
 - tqdm (>= 4.62.0)
@@ -128,6 +129,8 @@ This will:
 
 ### Configuration Files
 
+The tool supports two configuration formats: **YAML** and **.env**. Both formats can be used simultaneously in the same directory.
+
 #### Server Configuration (YAML)
 
 Create YAML files in your server configuration folder:
@@ -141,6 +144,32 @@ Server:
   database: "your-database"  # Optional, can be selected interactively
   use_keyring: true          # Whether to store password in system keyring
 ```
+
+#### Server Configuration (.env)
+
+Alternatively, create .env files for server configuration:
+
+```bash
+# Required fields
+ODOO_URL=https://your-odoo-server.com
+ODOO_USER=admin
+
+# Optional fields
+ODOO_PORT=443
+ODOO_PASSWORD=your-password
+ODOO_DATABASE=your-database
+ODOO_USE_KEYRING=true
+```
+
+**Benefits of .env format:**
+- Industry-standard configuration format
+- Better IDE support and syntax highlighting
+- Easier integration with environment variables
+- Compatible with Docker and CI/CD pipelines
+
+**File naming:** `production.env`, `staging.env`, `localhost.env`, etc.
+
+For complete .env examples and documentation, see the [env_examples/](env_examples/) directory.
 
 #### Module Configuration (YAML)
 
@@ -157,7 +186,7 @@ Uninstall:
 
 ### Examples
 
-Basic usage:
+Basic usage with YAML configuration:
 
 ```bash
 # Install modules
@@ -176,6 +205,19 @@ odoo-un-install run --server_path=./connection_yaml --module_path=./module_yaml 
 odoo-un-install status --server_path=./connection_yaml
 ```
 
+Basic usage with .env configuration:
+
+```bash
+# Using .env files (automatically detected)
+odoo-un-install run --server_path=./env_configs --module_path=./module_yaml --install_modules
+
+# Mix YAML and .env in same directory
+odoo-un-install run --server_path=./servers --module_path=./modules --install_modules --update_modules
+
+# Check status with .env configuration
+odoo-un-install status --server_path=./env_configs
+```
+
 Advanced examples:
 
 ```bash
@@ -191,11 +233,42 @@ odoo-un-install run --server_path=$HOME/gitbase/dev-helpers/yaml/v13-yaml-con --
 
 ## Security
 
-Passwords can be:
-1. Stored in the YAML configuration file (not recommended for production)
-2. Stored in the system keyring (secure)
-3. Provided via environment variable `ODOO_PASSWORD`
-4. Entered interactively when prompted
+### Password Management Priority
+
+The tool uses passwords in the following priority order:
+
+1. **Environment variable** `ODOO_PASSWORD` (if set in .env file or shell environment)
+2. **System keyring** (if `use_keyring: true` or `ODOO_USE_KEYRING=true`)
+3. **Interactive prompt** (fallback if no password found)
+
+### Recommendations
+
+**For Production Servers:**
+```bash
+ODOO_URL=https://production.example.com
+ODOO_USER=admin
+ODOO_PASSWORD=              # Leave empty
+ODOO_USE_KEYRING=true      # Use system keyring for secure storage
+```
+
+**For Development:**
+```bash
+ODOO_URL=http://localhost
+ODOO_PORT=8069
+ODOO_USER=admin
+ODOO_PASSWORD=admin        # OK for local development
+ODOO_USE_KEYRING=false
+```
+
+**For CI/CD Pipelines:**
+```bash
+ODOO_URL=https://staging.example.com
+ODOO_USER=ci_user
+ODOO_PASSWORD=${CI_ODOO_PASSWORD}  # From CI secrets
+ODOO_USE_KEYRING=false
+```
+
+**⚠️ Important:** Never commit .env files with passwords to version control! Add `*.env` to your `.gitignore` (excluding templates like `template.env.example`)
 
 ## Changelog
 

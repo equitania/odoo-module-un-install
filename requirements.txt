@@ -2,6 +2,10 @@
 odoorpc>=0.10.1
 PyYAML>=6.0.2
 click>=8.1.8
+twine>=6.2.0
+
+# Configuration management
+python-dotenv>=1.0.0
 
 # Enhanced console output
 colorama>=0.4.4

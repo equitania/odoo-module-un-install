@@ -1,6 +1,13 @@
 # Odoo Module (Un)Install Tool
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://pypi.org/project/odoo-module-un-install-equitania/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](RELEASE_NOTES.md)
+
 A powerful command-line tool for managing Odoo modules across multiple server instances.
+
+**Version 1.0.0 - Production Ready** 🚀
 
 ## Features
 
@@ -190,6 +197,12 @@ Passwords can be:
 3. Provided via environment variable `ODOO_PASSWORD`
 4. Entered interactively when prompted
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+
+For release notes of the current version, see [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
 ## License
 
 This project is licensed under the terms of the **AGPLv3** license.
@@ -197,3 +210,14 @@ This project is licensed under the terms of the **AGPLv3** license.
 ## Support
 
 For questions and support, please open an issue on the GitHub repository.
+
+## Contributors
+
+- **Equitania Software GmbH** - [Website](https://www.equitania.de)
+
+## Acknowledgments
+
+This tool is built with:
+- [OdooRPC](https://github.com/OCA/odoorpc) - Odoo RPC client library
+- [Click](https://click.palletsprojects.com/) - Command-line interface framework
+- [Colorama](https://github.com/tartley/colorama) - Terminal color support

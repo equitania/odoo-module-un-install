@@ -11,7 +11,7 @@ from .version import __version__
 from .utils import (
     collect_all_connections, parse_yaml_folder,
     process_modules_in_parallel, analyze_dependencies,
-    display_module_status, setup_logging
+    display_module_status, setup_logging, export_modules_to_yaml
 )
 
 # Initialize colorama
@@ -364,9 +364,100 @@ def status(server_path, verbose):
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
         logger.error(f"Error: {e}", exc_info=True)
         return 1
-        
-    print(f"\n{Fore.GREEN}Status check completed successfully.{Style.RESET_ALL}")
-    return 0
+
+
+@cli.command('export', help="Export installed modules to YAML file")
+@click.option('--server_path',
+              help='Path to folder containing server configuration files',
+              prompt='Please enter the path to your server configuration folder',
+              type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
+@click.option('--output',
+              help='Output YAML file path',
+              prompt='Please enter the output YAML file path',
+              type=click.Path(file_okay=True, dir_okay=False, writable=True))
+@click.option('--include-base',
+              is_flag=True,
+              default=False,
+              help='Include base Odoo modules (default: exclude)')
+@click.option('--states',
+              default='installed',
+              help='Module states to export (comma-separated). Options: installed,to upgrade,to install,to remove')
+@click.option('--verbose', '-v',
+              is_flag=True,
+              help='Enable verbose output for debugging')
+def export(server_path, output, include_base, states, verbose):
+    """
+    Export installed modules from Odoo server to YAML file.
+
+    This command connects to an Odoo server and exports all installed modules
+    (or modules in specified states) to a YAML file that can be used for
+    module management operations.
+
+    Example:
+
+    \b
+    # Export only installed modules (excluding base)
+    odoo-un-install export --server_path=./env_configs --output=my_modules.yaml
+
+    \b
+    # Export all modules including base Odoo modules
+    odoo-un-install export --server_path=./env_configs --output=all_modules.yaml --include-base
+
+    \b
+    # Export modules that need upgrade
+    odoo-un-install export --server_path=./env_configs --output=upgrade.yaml --states="to upgrade"
+
+    \b
+    # Export multiple states
+    odoo-un-install export --server_path=./env_configs --output=multi.yaml --states="installed,to upgrade"
+    """
+    # Setup logging
+    setup_logging(verbose=verbose)
+
+    welcome()
+
+    try:
+        # Parse states
+        include_states = [s.strip() for s in states.split(',')]
+
+        # Collect connections
+        connections = collect_all_connections(server_path)
+        if not connections:
+            print(f"{Fore.RED}No valid server connections found.{Style.RESET_ALL}")
+            return 1
+
+        # Use first connection (can be extended to support multiple servers)
+        connection = connections[0]
+        if len(connections) > 1:
+            print(f"{Fore.YELLOW}Multiple servers found, using first: {connection.cleaned_url}{Style.RESET_ALL}")
+
+        # Login to the server
+        connection.login()
+        if not connection.is_logged_in:
+            print(f"{Fore.RED}Failed to login to {connection.cleaned_url}{Style.RESET_ALL}")
+            return 1
+
+        print(f"{Fore.GREEN}✓ Connected to {connection.cleaned_url} (Odoo v{connection.odoo_version}) as {connection.user}{Style.RESET_ALL}\n")
+
+        # Export modules
+        success = export_modules_to_yaml(
+            connection=connection,
+            output_file=output,
+            include_states=include_states,
+            exclude_base=not include_base
+        )
+
+        if success:
+            print(f"\n{Fore.CYAN}Module list exported successfully!{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}You can now use this file with --module_path option{Style.RESET_ALL}")
+            return 0
+        else:
+            return 1
+
+    except Exception as e:
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
+        logger.error(f"Error: {e}", exc_info=True)
+        return 1
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ A powerful command-line tool for managing Odoo modules across multiple server in
 ## Features
 
 - Install, uninstall, and update Odoo modules
+- Export installed modules to YAML configuration files
 - Process multiple Odoo servers in a single operation
 - Secure password management with keyring support
 - Dependencies analysis to prevent breaking installations
@@ -44,10 +45,11 @@ pip install odoo-module-un-install-equitania
 
 ### Command Line Interface
 
-The tool provides two main commands:
+The tool provides three main commands:
 
 1. `run` - Execute module operations (install, uninstall, update)
 2. `status` - Display module status information
+3. `export` - Export installed modules to YAML file
 
 ```bash
 # Run operations
@@ -58,6 +60,9 @@ odoo-un-install --version
 
 # Show module status
 odoo-un-install status [OPTIONS]
+
+# Export installed modules
+odoo-un-install export [OPTIONS]
 ```
 
 ### Available Options:
@@ -187,6 +192,25 @@ odoo-un-install run --server_path=./env_configs --module_path=./modules_yaml --i
 
 # Check module status
 odoo-un-install status --server_path=./env_configs
+
+# Export installed modules to YAML
+odoo-un-install export --server_path=./env_configs --output=my_modules.yaml
+```
+
+Export examples:
+
+```bash
+# Export only installed modules (excluding base Odoo modules)
+odoo-un-install export --server_path=./env_configs --output=installed_modules.yaml
+
+# Export all modules including base Odoo modules
+odoo-un-install export --server_path=./env_configs --output=all_modules.yaml --include-base
+
+# Export modules that need upgrade
+odoo-un-install export --server_path=./env_configs --output=upgrade_modules.yaml --states="to upgrade"
+
+# Export multiple states (installed + to upgrade)
+odoo-un-install export --server_path=./env_configs --output=multi_state.yaml --states="installed,to upgrade"
 ```
 
 Advanced examples:

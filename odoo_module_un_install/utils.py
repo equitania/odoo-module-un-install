@@ -601,7 +601,7 @@ def export_modules_to_yaml(
         header_comment = (
             f"# Exported modules from {connection.cleaned_url}\n"
             f"# Server: Odoo {connection.version}\n"
-            f"# Database: {connection.db}\n"
+            f"# Database: {connection.database}\n"
             f"# Total modules: {len(filtered_modules)}\n"
             f"# States included: {', '.join(include_states)}\n"
             f"# Base modules excluded: {exclude_base}\n"

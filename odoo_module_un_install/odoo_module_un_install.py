@@ -9,9 +9,9 @@ import os
 from colorama import Fore, Style, init
 from .version import __version__
 from .utils import (
-    collect_all_connections, parse_yaml_folder, 
+    collect_all_connections, parse_yaml_folder,
     process_modules_in_parallel, analyze_dependencies,
-    display_module_status
+    display_module_status, setup_logging
 )
 
 # Initialize colorama
@@ -126,13 +126,12 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
     # Full operation with parallel processing
     odoo-un-install run --server_path=./servers --module_path=./modules --install_modules --uninstall_modules --update_modules --check_dependencies --parallel
     """
-    # Set logging level based on verbose flag
-    if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        
+    # Setup logging (only shows WARNING+ on console unless verbose)
+    setup_logging(verbose=verbose)
+
     welcome()
     start_time = time.time()
-    
+
     print(f"{Fore.YELLOW}Loading configurations...{Style.RESET_ALL}")
     
     # Collect yaml files and build objects
@@ -307,25 +306,31 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
 
 # Add a status command to just show module status without modifications
 @cli.command('status', help="Show module status information for Odoo servers")
-@click.option('--server_path', 
+@click.option('--server_path',
               help='Path to folder containing server configuration YAML files',
               prompt='Please enter the path to your server configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
-def status(server_path):
+@click.option('--verbose', '-v',
+              is_flag=True,
+              help='Enable verbose output for debugging')
+def status(server_path, verbose):
     """
     Display detailed status information about modules on Odoo servers.
-    
+
     This command connects to the Odoo servers defined in the configuration files
     and displays a comprehensive report about installed modules, modules pending
     installation or update, and other relevant status information.
-    
+
     Example:
-    
+
     \b
     odoo-un-install status --server_path=./servers
     """
+    # Setup logging (only shows WARNING+ on console unless verbose)
+    setup_logging(verbose=verbose)
+
     welcome()
-    
+
     # Collect yaml files and build objects
     try:
         connections = collect_all_connections(server_path)

@@ -20,20 +20,51 @@ from .odoo_connection import OdooConnection
 # Initialize colorama
 init()
 
-# Configure logging with configurable log file location
-_log_dir = os.environ.get('ODOO_MODULE_LOG_DIR', tempfile.gettempdir())
-_log_file = os.path.join(_log_dir, 'odoo_module_un_install.log')
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(_log_file),
-        logging.StreamHandler()
-    ]
-)
+# Get logger for this module (configuration happens in CLI)
 logger = logging.getLogger(__name__)
-logger.info(f"Logging to: {_log_file}")
+
+
+def setup_logging(verbose: bool = False) -> str:
+    """Configure logging for the application.
+
+    Args:
+        verbose: If True, show INFO+ on console. If False, only WARNING+ (default: False).
+
+    Returns:
+        Path to the log file.
+
+    Example:
+        >>> log_file = setup_logging(verbose=True)
+        >>> logger.info("This will be shown on console and in file")
+    """
+    # Configure log file location
+    log_dir = os.environ.get('ODOO_MODULE_LOG_DIR', tempfile.gettempdir())
+    log_file = os.path.join(log_dir, 'odoo_module_un_install.log')
+
+    # Remove existing handlers to avoid duplicates
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # File handler - logs everything INFO and above
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+
+    # Console handler - only WARNING+ unless verbose
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO if verbose else logging.WARNING)
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    # Configure root logger
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+    logger.debug(f"Logging to: {log_file}")
+    return log_file
 
 
 def self_clean(input_dictionary: Dict[str, List]) -> Dict[str, List]:

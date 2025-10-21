@@ -437,7 +437,7 @@ def export(server_path, output, include_base, states, verbose):
             print(f"{Fore.RED}Failed to login to {connection.cleaned_url}{Style.RESET_ALL}")
             return 1
 
-        print(f"{Fore.GREEN}✓ Connected to {connection.cleaned_url} (Odoo v{connection.odoo_version}) as {connection.user}{Style.RESET_ALL}\n")
+        print(f"{Fore.GREEN}✓ Connected to {connection.cleaned_url} (Odoo v{connection.version}) as {connection.user}{Style.RESET_ALL}\n")
 
         # Export modules
         success = export_modules_to_yaml(

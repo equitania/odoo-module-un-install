@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright 2014-now Equitania Software GmbH - Pforzheim - Germany
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-# Date: 24.06.2025
 
 """Utility functions for Odoo module management operations."""
 
@@ -601,7 +600,7 @@ def export_modules_to_yaml(
         # Add comment header
         header_comment = (
             f"# Exported modules from {connection.cleaned_url}\n"
-            f"# Server: Odoo {connection.odoo_version}\n"
+            f"# Server: Odoo {connection.version}\n"
             f"# Database: {connection.db}\n"
             f"# Total modules: {len(filtered_modules)}\n"
             f"# States included: {', '.join(include_states)}\n"

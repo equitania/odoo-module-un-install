@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 1.1.7 (19.11.2025)
+
+### Bug Fixes
+
+#### Module Status Reporting
+- **Fixed**: Modules that were already installed are now correctly counted as success instead of failure
+- **Fixed**: Modules that were already uninstalled are now correctly counted as success instead of failure
+
+**Details**:
+The tool previously treated "already in desired state" as a failure, which was incorrect. When a module was already installed and the user requested installation, this should be considered a success (the module is in the desired state). The same logic applies to uninstallation.
+
+**Impact**:
+- Summary reports now correctly reflect successful operations
+- Success/Failure counts are accurate
+- Users no longer see standard modules incorrectly reported as failures
+
+### Technical Changes
+- Modified `install_module()` to return `True` when module is already installed
+- Modified `uninstall_module()` to return `True` when module is already uninstalled
+- Updated docstrings to reflect the corrected behavior
+
+---
+
 ## Version 1.0.0 (24.06.2025)
 
 ### Production Release

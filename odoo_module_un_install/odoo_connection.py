@@ -189,7 +189,7 @@ class OdooConnection:
             module_name: Name of the module to install.
 
         Returns:
-            True if module was installed, False if already installed or error occurred.
+            True if module is installed (newly or already), False if error occurred.
 
         Example:
             >>> conn.install_module('sale')
@@ -207,7 +207,7 @@ class OdooConnection:
             else:
                 print(f"{Fore.CYAN}Module {module_name} already installed{Style.RESET_ALL}")
                 logger.info(f"Module {module_name} already installed")
-                return False
+                return True  # Already in desired state = success
         except exceptions.ModuleNotFoundError as e:
             print(f"{Fore.RED}✗ {e}{Style.RESET_ALL}")
             logger.error(str(e))
@@ -225,7 +225,7 @@ class OdooConnection:
             check_dependencies: Whether to check for dependent modules (default: True).
 
         Returns:
-            True if module was uninstalled, False if already uninstalled, has dependents, or error occurred.
+            True if module is uninstalled (newly or already), False if has dependents or error occurred.
 
         Example:
             >>> conn.uninstall_module('sale', check_dependencies=True)
@@ -251,7 +251,7 @@ class OdooConnection:
             else:
                 print(f"{Fore.CYAN}Module {module_name} already uninstalled{Style.RESET_ALL}")
                 logger.info(f"Module {module_name} already uninstalled")
-                return False
+                return True  # Already in desired state = success
         except exceptions.ModuleNotFoundError as e:
             print(f"{Fore.RED}✗ {e}{Style.RESET_ALL}")
             logger.error(str(e))

@@ -7,8 +7,6 @@
 
 A powerful command-line tool for managing Odoo modules across multiple server instances.
 
-**Version 1.0.0 - Production Ready** 🚀
-
 ## Features
 
 - Install, uninstall, and update Odoo modules

@@ -4,4 +4,4 @@
 
 """Version information."""
 
-__version__ = '1.1.6' 
+__version__ = '1.1.7'  # 19.11.2025 - Fixed: "already installed" modules now counted as success 

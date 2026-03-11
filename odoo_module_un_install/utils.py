@@ -4,16 +4,18 @@
 
 """Utility functions for Odoo module management operations."""
 
-import yaml
-import os
-import logging
-import tempfile
-from typing import List, Dict, Callable, Optional, Union, Any
-from pathlib import Path
 import concurrent.futures
-from tqdm import tqdm
+import logging
+import os
+import tempfile
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
+
+import yaml
 from colorama import Fore, Style, init
 from dotenv import dotenv_values
+from tqdm import tqdm
+
 from . import exceptions
 from .odoo_connection import OdooConnection
 
@@ -181,7 +183,7 @@ def parse_env_file(env_file: Union[str, Path]) -> Union[Dict[str, Any], bool]:
 
         return server_config
 
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error(f".env file not found: {env_file}")
         print(f"{Fore.RED}File not found: {env_file}{Style.RESET_ALL}")
         return False
@@ -263,8 +265,10 @@ def create_odoo_connection_from_env(env_config: Dict[str, Any]) -> Optional[Odoo
 
         if not all([url, user]):
             missing = []
-            if not url: missing.append('ODOO_URL')
-            if not user: missing.append('ODOO_USER')
+            if not url:
+                missing.append('ODOO_URL')
+            if not user:
+                missing.append('ODOO_USER')
             raise ValueError(f"Missing required .env variables: {', '.join(missing)}")
 
         odoo_connection_object = OdooConnection(

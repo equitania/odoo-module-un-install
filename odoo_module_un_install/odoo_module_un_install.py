@@ -3,16 +3,21 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
+from typing import Callable, Dict, List
+
 import click
-import time
-import os
 from colorama import Fore, Style, init
-from .version import __version__
+
 from .utils import (
-    collect_all_connections, parse_yaml_folder,
-    process_modules_in_parallel, analyze_dependencies,
-    display_module_status, setup_logging, export_modules_to_yaml
+    analyze_dependencies,
+    collect_all_connections,
+    display_module_status,
+    export_modules_to_yaml,
+    parse_yaml_folder,
+    process_modules_in_parallel,
+    setup_logging,
 )
+from .version import __version__
 
 # Initialize colorama
 init()
@@ -20,8 +25,75 @@ init()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-def welcome():
-    """Display welcome message"""
+def _process_operation(
+    connection,
+    modules: List[str],
+    operation_fn: Callable[[str], bool],
+    operation_type: str,
+    connection_url: str,
+    results: Dict[str, Dict[str, List[str]]],
+    check_dependencies: bool,
+    parallel: bool,
+    max_workers: int,
+) -> None:
+    """Process a module operation (install/uninstall/update) on a connection.
+
+    Args:
+        connection: OdooConnection instance.
+        modules: List of module names to process.
+        operation_fn: Function to call for each module.
+        operation_type: One of 'install', 'uninstall', 'update'.
+        connection_url: Server URL for display and result tracking.
+        results: Shared results dict to append success/failure.
+        check_dependencies: Whether to run dependency analysis.
+        parallel: Whether to process in parallel.
+        max_workers: Number of parallel workers.
+    """
+    if not modules:
+        print(f"{Fore.YELLOW}No modules to {operation_type} defined{Style.RESET_ALL}")
+        return
+
+    label = operation_type.capitalize()
+    print(f"\n{Fore.CYAN}=== {label}ing modules on {connection_url} ==={Style.RESET_ALL}")
+
+    if check_dependencies:
+        analysis = analyze_dependencies(connection, modules, operation_type)
+
+        if analysis['dependent']:
+            if operation_type == "install":
+                print(f"{Fore.YELLOW}Some modules have missing dependencies:{Style.RESET_ALL}")
+                for module, deps in analysis['dependent'].items():
+                    print(f"  {Fore.YELLOW}! {module} - Missing deps: {', '.join(deps)}{Style.RESET_ALL}")
+                    modules.extend(deps)
+                modules = list(dict.fromkeys(modules))
+            else:
+                print(f"{Fore.YELLOW}Some modules have dependencies and will be skipped:{Style.RESET_ALL}")
+                for module, deps in analysis['dependent'].items():
+                    print(f"  {Fore.RED}✗ {module} - Used by: {', '.join(deps)}{Style.RESET_ALL}")
+
+        if analysis['missing']:
+            print(f"{Fore.YELLOW}Some modules were not found:{Style.RESET_ALL}")
+            for module in analysis['missing']:
+                print(f"  {Fore.RED}✗ {module} - Not found{Style.RESET_ALL}")
+
+        if operation_type != "install":
+            modules = analysis['ready']
+
+    if parallel:
+        successful_modules = process_modules_in_parallel(
+            connection, modules, operation_fn, max_workers
+        )
+    else:
+        successful_modules = [m for m in modules if operation_fn(m)]
+
+    results[connection_url]['success'].extend(successful_modules)
+    results[connection_url]['failure'].extend(
+        [m for m in modules if m not in successful_modules]
+    )
+
+
+def welcome() -> None:
+    """Display welcome message."""
     # Box width: 54 characters (including borders)
     welcome_text = "Welcome to the Odoo Module (Un)Install Tool!"
     version_text = f"Version {__version__}"
@@ -43,31 +115,34 @@ def display_summary(results, operation):
     if not results:
         print(f"{Fore.YELLOW}No results to display.{Style.RESET_ALL}")
         return
-        
+
     print(f"\n{Fore.CYAN}=== Operation Summary: {operation.title()} ==={Style.RESET_ALL}")
-    
+
     total_success = 0
     total_failure = 0
-    
+
     for server, modules in results.items():
         success_count = len(modules.get('success', []))
         fail_count = len(modules.get('failure', []))
         total_success += success_count
         total_failure += fail_count
-        
+
         print(f"\n{Fore.BLUE}Server: {server}{Style.RESET_ALL}")
         print(f"  {Fore.GREEN}Success: {success_count}{Style.RESET_ALL}")
         if modules.get('success'):
             for module in sorted(modules.get('success', [])):
                 print(f"    ✓ {module}")
-                
+
         print(f"  {Fore.RED}Failure: {fail_count}{Style.RESET_ALL}")
         if modules.get('failure'):
             for module in sorted(modules.get('failure', [])):
                 print(f"    ✗ {module}")
-    
+
     print(f"\n{Fore.CYAN}Total: {total_success + total_failure} modules processed{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}Success: {total_success}{Style.RESET_ALL} | {Fore.RED}Failure: {total_failure}{Style.RESET_ALL}")
+    print(
+        f"{Fore.GREEN}Success: {total_success}{Style.RESET_ALL}"
+        f" | {Fore.RED}Failure: {total_failure}{Style.RESET_ALL}"
+    )
 
 
 @click.group(help="Odoo Module Management Tool - Install, uninstall and update modules across multiple Odoo instances")
@@ -82,83 +157,85 @@ def cli():
               help='Path to folder containing .env server configuration files',
               prompt='Please enter the path to your server configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
-@click.option('--module_path', 
+@click.option('--module_path',
               help='Path to folder containing module configuration YAML files',
               prompt='Please enter the path to your module configuration folder',
               type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
-@click.option('--uninstall_modules', 
-              is_flag=True, 
+@click.option('--uninstall_modules',
+              is_flag=True,
               help='Uninstall modules defined in the "Uninstall" section of YAML files')
-@click.option('--install_modules', 
-              is_flag=True, 
+@click.option('--install_modules',
+              is_flag=True,
               help='Install modules defined in the "Install" section of YAML files')
-@click.option('--update_modules', 
-              is_flag=True, 
+@click.option('--update_modules',
+              is_flag=True,
               help='Update modules defined in the "Install" section of YAML files')
-@click.option('--check_dependencies', 
-              is_flag=True, 
+@click.option('--check_dependencies',
+              is_flag=True,
               help='Check module dependencies before operations (recommended)')
-@click.option('--parallel', 
-              is_flag=True, 
+@click.option('--parallel',
+              is_flag=True,
               help='Process modules in parallel for faster execution')
-@click.option('--max_workers', 
-              default=5, 
+@click.option('--max_workers',
+              default=5,
               show_default=True,
               help='Maximum number of parallel workers when using --parallel')
-@click.option('--show_status', 
-              is_flag=True, 
+@click.option('--show_status',
+              is_flag=True,
               help='Show detailed module status report after operations')
-@click.option('--verbose', '-v', 
-              is_flag=True, 
+@click.option('--verbose', '-v',
+              is_flag=True,
               help='Enable verbose output for debugging')
-def run(server_path, module_path, uninstall_modules, install_modules, update_modules, 
+def run(server_path, module_path, uninstall_modules, install_modules, update_modules,
         check_dependencies, parallel, max_workers, show_status, verbose):
-    """
-    Execute module operations on Odoo servers.
-    
+    """Execute module operations on Odoo servers.
+
     This command processes server and module configurations from YAML files and
     performs the requested operations (install, uninstall, update) on the specified
     Odoo servers. It can analyze dependencies, process modules in parallel, and
     provide detailed status reports.
-    
+
     Examples:
-    
+
     \b
     # Install and uninstall modules
-    odoo-un-install run --server_path=./servers --module_path=./modules --install_modules --uninstall_modules
-    
+    odoo-un-install run --server_path=./servers --module_path=./modules \\
+        --install_modules --uninstall_modules
+
     \b
     # Update modules with dependency checking
-    odoo-un-install run --server_path=./servers --module_path=./modules --update_modules --check_dependencies
-    
+    odoo-un-install run --server_path=./servers --module_path=./modules \\
+        --update_modules --check_dependencies
+
     \b
     # Full operation with parallel processing
-    odoo-un-install run --server_path=./servers --module_path=./modules --install_modules --uninstall_modules --update_modules --check_dependencies --parallel
+    odoo-un-install run --server_path=./servers --module_path=./modules \\
+        --install_modules --uninstall_modules --update_modules \\
+        --check_dependencies --parallel
     """
     # Setup logging (only shows WARNING+ on console unless verbose)
     setup_logging(verbose=verbose)
 
     welcome()
-    start_time = time.time()
 
     print(f"{Fore.YELLOW}Loading configurations...{Style.RESET_ALL}")
-    
+
     # Collect yaml files and build objects
     try:
         connections = collect_all_connections(server_path)
         if not connections:
             return
-            
+
         module_objects = parse_yaml_folder(module_path)
         if not module_objects:
             return
-            
+
         # Get the first module object for simplicity (assuming one file)
         module_object = module_objects[0]
-        
+
         # Track results for summary
         results = {}
-        
+
         # Process each server
         for connection in connections:
             connection_url = connection.cleaned_url
@@ -166,146 +243,42 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
                 'success': [],
                 'failure': []
             }
-            
+
             # Login to the server
             connection.login()
             if not connection.is_logged_in:
                 print(f"{Fore.RED}Failed to login to {connection_url}, skipping...{Style.RESET_ALL}")
                 continue
-            
-            # Define operation functions
-            def install_module(module):
-                return connection.install_module(module)
-                
-            def uninstall_module(module):
-                return connection.uninstall_module(module, check_dependencies=check_dependencies)
-                
-            def update_module(module):
-                return connection.update_module(module)
-            
-            # Uninstall modules
+
+            # Process each requested operation
             if uninstall_modules:
-                modules_to_uninstall = module_object.get("Uninstall", [])
-                if not modules_to_uninstall:
-                    print(f"{Fore.YELLOW}No modules to uninstall defined{Style.RESET_ALL}")
-                else:
-                    print(f"\n{Fore.CYAN}=== Uninstalling modules on {connection_url} ==={Style.RESET_ALL}")
-                    
-                    if check_dependencies:
-                        # Analyze dependencies
-                        analysis = analyze_dependencies(connection, modules_to_uninstall, "uninstall")
-                        if analysis['dependent']:
-                            print(f"{Fore.YELLOW}Some modules have dependencies and will be skipped:{Style.RESET_ALL}")
-                            for module, deps in analysis['dependent'].items():
-                                print(f"  {Fore.RED}✗ {module} - Used by: {', '.join(deps)}{Style.RESET_ALL}")
-                        
-                        if analysis['missing']:
-                            print(f"{Fore.YELLOW}Some modules were not found:{Style.RESET_ALL}")
-                            for module in analysis['missing']:
-                                print(f"  {Fore.RED}✗ {module} - Not found{Style.RESET_ALL}")
-                                
-                        # Only uninstall modules that are ready
-                        modules_to_uninstall = analysis['ready']
-                    
-                    if parallel:
-                        successful_modules = process_modules_in_parallel(
-                            connection, modules_to_uninstall, uninstall_module, max_workers
-                        )
-                    else:
-                        successful_modules = []
-                        for module in modules_to_uninstall:
-                            if uninstall_module(module):
-                                successful_modules.append(module)
-                    
-                    results[connection_url]['success'].extend(successful_modules)
-                    results[connection_url]['failure'].extend(
-                        [m for m in modules_to_uninstall if m not in successful_modules]
-                    )
-            
-            # Install modules
+                _process_operation(
+                    connection, module_object.get("Uninstall", []),
+                    lambda m: connection.uninstall_module(m, check_dependencies=check_dependencies),
+                    "uninstall", connection_url, results,
+                    check_dependencies, parallel, max_workers,
+                )
+
             if install_modules:
-                modules_to_install = module_object.get("Install", [])
-                if not modules_to_install:
-                    print(f"{Fore.YELLOW}No modules to install defined{Style.RESET_ALL}")
-                else:
-                    print(f"\n{Fore.CYAN}=== Installing modules on {connection_url} ==={Style.RESET_ALL}")
-                    
-                    if check_dependencies:
-                        # Analyze dependencies
-                        analysis = analyze_dependencies(connection, modules_to_install, "install")
-                        if analysis['dependent']:
-                            print(f"{Fore.YELLOW}Some modules have missing dependencies:{Style.RESET_ALL}")
-                            for module, deps in analysis['dependent'].items():
-                                print(f"  {Fore.YELLOW}! {module} - Missing deps: {', '.join(deps)}{Style.RESET_ALL}")
-                                # Add dependencies to the installation list
-                                modules_to_install.extend(deps)
-                        
-                        if analysis['missing']:
-                            print(f"{Fore.YELLOW}Some modules were not found:{Style.RESET_ALL}")
-                            for module in analysis['missing']:
-                                print(f"  {Fore.RED}✗ {module} - Not found{Style.RESET_ALL}")
-                                
-                        # Remove duplicates
-                        modules_to_install = list(dict.fromkeys(modules_to_install))
-                    
-                    if parallel:
-                        successful_modules = process_modules_in_parallel(
-                            connection, modules_to_install, install_module, max_workers
-                        )
-                    else:
-                        successful_modules = []
-                        for module in modules_to_install:
-                            if install_module(module):
-                                successful_modules.append(module)
-                    
-                    results[connection_url]['success'].extend(successful_modules)
-                    results[connection_url]['failure'].extend(
-                        [m for m in modules_to_install if m not in successful_modules]
-                    )
-            
-            # Update modules
+                _process_operation(
+                    connection, module_object.get("Install", []),
+                    connection.install_module,
+                    "install", connection_url, results,
+                    check_dependencies, parallel, max_workers,
+                )
+
             if update_modules:
-                modules_to_update = module_object.get("Update", [])
-                if not modules_to_update:
-                    print(f"{Fore.YELLOW}No modules to update defined{Style.RESET_ALL}")
-                else:
-                    print(f"\n{Fore.CYAN}=== Updating modules on {connection_url} ==={Style.RESET_ALL}")
-                    
-                    if check_dependencies:
-                        # Analyze dependencies
-                        analysis = analyze_dependencies(connection, modules_to_update, "update")
-                        if analysis['dependent']:
-                            print(f"{Fore.YELLOW}Some modules have dependencies and will be skipped:{Style.RESET_ALL}")
-                            for module, deps in analysis['dependent'].items():
-                                print(f"  {Fore.RED}✗ {module} - Used by: {', '.join(deps)}{Style.RESET_ALL}")
-                        
-                        if analysis['missing']:
-                            print(f"{Fore.YELLOW}Some modules were not found:{Style.RESET_ALL}")
-                            for module in analysis['missing']:
-                                print(f"  {Fore.RED}✗ {module} - Not found{Style.RESET_ALL}")
-                                
-                        # Only update modules that are ready
-                        modules_to_update = analysis['ready']
-                    
-                    if parallel:
-                        successful_modules = process_modules_in_parallel(
-                            connection, modules_to_update, update_module, max_workers
-                        )
-                    else:
-                        successful_modules = []
-                        for module in modules_to_update:
-                            if update_module(module):
-                                successful_modules.append(module)
-                    
-                    results[connection_url]['success'].extend(successful_modules)
-                    results[connection_url]['failure'].extend(
-                        [m for m in modules_to_update if m not in successful_modules]
-                    )
-            
+                _process_operation(
+                    connection, module_object.get("Update", []),
+                    connection.update_module,
+                    "update", connection_url, results,
+                    check_dependencies, parallel, max_workers,
+                )
+
             # Display module status
             if show_status:
                 display_module_status(connection)
-        
+
         # Display summary
         display_summary(results, "operation")
     except Exception as e:
@@ -346,20 +319,20 @@ def status(server_path, verbose):
         if not connections:
             print(f"{Fore.RED}No valid server connections found.{Style.RESET_ALL}")
             return
-            
+
         # Process each server
         for connection in connections:
             connection_url = connection.cleaned_url
-            
+
             # Login to the server
             connection.login()
             if not connection.is_logged_in:
                 print(f"{Fore.RED}Failed to login to {connection_url}, skipping...{Style.RESET_ALL}")
                 continue
-                
+
             # Display module status
             display_module_status(connection)
-            
+
     except Exception as e:
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
         logger.error(f"Error: {e}", exc_info=True)

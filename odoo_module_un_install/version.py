@@ -4,4 +4,4 @@
 
 """Version information."""
 
-__version__ = '1.1.7'  # 19.11.2025 - Fixed: "already installed" modules now counted as success 
+__version__ = '1.2.0'  # 11.03.2026 - Migrated to odoorpc-toolbox and pyproject.toml

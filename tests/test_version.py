@@ -27,5 +27,5 @@ def test_version_format():
 
 @pytest.mark.unit
 def test_version_value():
-    """Test that version is 1.0.0."""
-    assert __version__ == '1.0.0'
+    """Test that version is 1.2.0."""
+    assert __version__ == '1.2.0'

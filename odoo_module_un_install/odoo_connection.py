@@ -4,13 +4,14 @@
 
 """Odoo RPC connection management and module operations."""
 
-import urllib.error
 import logging
-from typing import List, Dict, Optional, Any
-import odoorpc
+import urllib.error
+from typing import Any, Dict, List, Optional
+
+import odoorpc_toolbox as odoorpc
 from colorama import Fore, Style, init
-from . import exceptions
-from . import secure_login
+
+from . import exceptions, secure_login
 
 # Initialize colorama
 init()
@@ -154,7 +155,10 @@ class OdooConnection:
             self.version = self.connection.version.split(".")[0]
 
             logger.info(f"Login successful for {self.username} to {self.url} (Odoo v{self.version})")
-            print(f"{Fore.GREEN}✓ Connected to {self.cleaned_url} (Odoo v{self.version}) as {self.username}{Style.RESET_ALL}")
+            print(
+                f"{Fore.GREEN}✓ Connected to {self.cleaned_url}"
+                f" (Odoo v{self.version}) as {self.username}{Style.RESET_ALL}"
+            )
         except odoorpc.error.RPCError as ex:
             logger.error(f"Login failed: {ex}")
             print(f"{Fore.RED}✗ Login failed for {self.cleaned_url}: {ex}{Style.RESET_ALL}")
@@ -312,7 +316,7 @@ class OdooConnection:
         """
         try:
             MODULES = self.connection.env['ir.module.module']
-            module = self._get_module_object(module_name)
+            self._get_module_object(module_name)  # Validate module exists
             dependent_ids = MODULES.search([
                 ('state', '=', 'installed'),
                 ('dependencies_id.name', '=', module_name)

@@ -4,11 +4,12 @@
 
 """Secure password management using system keyring."""
 
-import keyring
 import getpass
 import logging
 import os
 from typing import Optional
+
+import keyring
 
 logger = logging.getLogger(__name__)
 

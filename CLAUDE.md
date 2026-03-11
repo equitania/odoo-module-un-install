@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Setup
 
 ### Prerequisites
-- Python >= 3.8
+- Python >= 3.10
 - UV package manager (NOT pip)
 
 ### Environment Setup
@@ -25,11 +25,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 uv venv
 source .venv/bin/activate.fish  # or use venv+ alias if available
 
-# Install dependencies with UV
-uv pip install -r requirements.txt
-
 # Install in editable/development mode
 uv pip install -e .
+
+# Install with dev dependencies
+uv pip install -e ".[dev]"
 ```
 
 ## Essential Commands
@@ -84,7 +84,7 @@ pytest --cov=odoo_module_un_install tests/
 - `utils.py` - YAML parsing, parallel processing, dependency analysis
 - `secure_login.py` - Keyring-based password management
 - `exceptions.py` - Custom exception classes
-- `version.py` - Version information (`__version__ = '0.1.0'`)
+- `version.py` - Version information (`__version__ = '1.2.0'`)
 
 ### Configuration System
 
@@ -134,19 +134,18 @@ The tool supports parallel operations when `--parallel` flag is used:
 3. Update RELEASE_NOTES.md if exists
 4. Use git commit prefix: `[CHG]` for version changes
 
-Current version: `0.1.0`
+Current version: `1.2.0`
 
 ## Package Management
 
-**IMPORTANT**: This project uses UV package manager exclusively.
+**IMPORTANT**: This project uses UV package manager exclusively. All dependencies are managed in `pyproject.toml`.
 
 ```bash
-# Install/upgrade dependencies
-uv pip install -r requirements.txt --upgrade
+# Install in editable mode
+uv pip install -e .
 
-# Add new dependency
-uv pip install package-name
-# Then manually add to requirements.txt
+# Install with dev dependencies
+uv pip install -e ".[dev]"
 
 # Build for PyPI distribution
 uv build
@@ -155,7 +154,7 @@ uv build
 ## Dependencies
 
 Core dependencies:
-- **OdooRPC** (>=0.10.1) - Odoo server communication
+- **odoorpc-toolbox** (>=0.7.0) - Odoo server communication (Drop-in replacement for OdooRPC)
 - **PyYAML** (>=6.0.2) - Configuration file parsing
 - **click** (>=8.1.8) - CLI framework
 - **colorama** (>=0.4.4) - Colored console output

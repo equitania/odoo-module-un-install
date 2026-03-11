@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "odoo-module-un-install-equitania"
+version = "1.2.0"
+description = "A package to un/install modules in Odoo"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.10"
+authors = [
+    { name = "Equitania Software GmbH", email = "info@equitania.de" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "odoorpc-toolbox>=0.7.0",
+    "click>=8.1.8",
+    "PyYAML>=6.0.2",
+    "python-dotenv>=1.0.0",
+    "colorama>=0.4.4",
+    "tqdm>=4.62.0",
+    "keyring>=23.0.0",
+    "python-dateutil>=2.8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.1",
+    "ruff>=0.9.0",
+    "mypy>=1.5.0",
+    "types-PyYAML>=6.0.12",
+    "types-colorama>=0.4.15",
+    "twine>=6.2.0",
+]
+
+[project.scripts]
+odoo-un-install = "odoo_module_un_install.odoo_module_un_install:cli"
+
+[project.urls]
+Homepage = "https://github.com/equitania/odoo-module-un-install"
+
+[tool.hatch.build.targets.wheel]
+packages = ["odoo_module_un_install"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203", "E266"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["odoo_module_un_install"]

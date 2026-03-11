@@ -1,5 +1,22 @@
 # Release Notes
 
+## Version 1.2.0 (11.03.2026)
+
+### Changed
+- Migrated from OdooRPC to odoorpc-toolbox (drop-in replacement with internalized OdooRPC)
+- Migrated build system from setup.py to pyproject.toml with Hatchling backend
+- Replaced black + isort + flake8 with ruff for linting and formatting
+- Refactored `run()` command: extracted duplicated uninstall/install/update logic into `_process_operation()` helper (130 lines reduced)
+- Removed `setup.py`, `requirements.txt`, and `requirements-dev.txt` (consolidated in pyproject.toml)
+- Minimum Python version raised to 3.10
+
+### Fixed
+- Fixed test_version.py expecting outdated version string
+- Fixed unused variable in `get_module_dependents()`
+- Fixed trailing whitespace and import sorting across codebase
+
+---
+
 ## Version 1.1.7 (19.11.2025)
 
 ### Bug Fixes

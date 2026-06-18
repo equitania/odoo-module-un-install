@@ -4,4 +4,4 @@
 
 """Version information."""
 
-__version__ = '1.2.0'  # 11.03.2026 - Migrated to odoorpc-toolbox and pyproject.toml
+__version__ = '1.2.1'  # 18.06.2026 - Security & robustness hardening (log dir, DB selection, exceptions)

@@ -32,9 +32,9 @@ def test_module_dependency_error():
 
 @pytest.mark.unit
 def test_module_not_found_error():
-    """Test ModuleNotFoundError exception."""
-    with pytest.raises(exceptions.ModuleNotFoundError):
-        raise exceptions.ModuleNotFoundError("Module not found")
+    """Test OdooModuleNotFoundError exception."""
+    with pytest.raises(exceptions.OdooModuleNotFoundError):
+        raise exceptions.OdooModuleNotFoundError("Module not found")
 
 
 @pytest.mark.unit

@@ -20,6 +20,11 @@ class ModuleDependencyError(Exception):
     pass
 
 
-class ModuleNotFoundError(Exception):
-    """Raised when a module could not be found in Odoo."""
+class OdooModuleNotFoundError(Exception):
+    """Raised when a module could not be found in Odoo.
+
+    Named with an ``Odoo`` prefix to avoid shadowing the Python builtin
+    ``ModuleNotFoundError`` (a subclass of ``ImportError`` used by the import
+    system), which would silently break any unqualified ``except`` clause.
+    """
     pass

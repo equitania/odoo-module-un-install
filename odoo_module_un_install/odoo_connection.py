@@ -5,6 +5,7 @@
 """Odoo RPC connection management and module operations."""
 
 import logging
+import sys
 import urllib.error
 from typing import Any, Dict, List, Optional
 
@@ -137,12 +138,19 @@ class OdooConnection:
                 if len(databases) == 1:
                     self.database = databases[0]
                     logger.info(f"Using single available database: {self.database}")
+                elif not sys.stdin.isatty():
+                    # Non-interactive context (pipe, CI, parallel run): we cannot
+                    # safely prompt for a choice without blocking or deadlocking.
+                    raise exceptions.OdooConnectionError(
+                        f"Multiple databases available on {self.cleaned_url} "
+                        f"({', '.join(databases)}) but no interactive terminal is "
+                        f"attached. Set ODOO_DATABASE in the .env file to select one."
+                    )
                 else:
                     print(f"{Fore.CYAN}Available databases:{Style.RESET_ALL}")
                     for i, db in enumerate(databases, 1):
                         print(f"{Fore.GREEN}{i}.{Style.RESET_ALL} {db}")
-                    choice = int(input(f"{Fore.YELLOW}Select database number: {Style.RESET_ALL}"))
-                    self.database = databases[choice - 1]
+                    self.database = self._prompt_database_choice(databases)
 
             # Perform login
             self.connection.login(self.database, self.username, self.password)
@@ -165,6 +173,35 @@ class OdooConnection:
             raise exceptions.OdooConnectionError(
                 f"ERROR: Please check your parameters and your connection: {ex}")
 
+    @staticmethod
+    def _prompt_database_choice(databases: List[str]) -> str:
+        """Interactively prompt for a database selection with input validation.
+
+        Args:
+            databases: List of available database names.
+
+        Returns:
+            The selected database name.
+
+        Raises:
+            OdooConnectionError: If end-of-input is reached before a valid choice.
+        """
+        while True:
+            try:
+                raw = input(f"{Fore.YELLOW}Select database number (1-{len(databases)}): {Style.RESET_ALL}")
+            except EOFError:
+                raise exceptions.OdooConnectionError(
+                    "No database selected (end of input). Set ODOO_DATABASE in the .env file."
+                )
+            try:
+                choice = int(raw)
+            except ValueError:
+                print(f"{Fore.RED}Invalid input. Please enter a number.{Style.RESET_ALL}")
+                continue
+            if 1 <= choice <= len(databases):
+                return databases[choice - 1]
+            print(f"{Fore.RED}Please enter a number between 1 and {len(databases)}.{Style.RESET_ALL}")
+
     def _get_module_object(self, module_name: str) -> Any:
         """Retrieve module object from Odoo by name.
 
@@ -175,13 +212,13 @@ class OdooConnection:
             Module object from Odoo.
 
         Raises:
-            ModuleNotFoundError: If module does not exist.
+            OdooModuleNotFoundError: If module does not exist.
         """
         MODULES = self.connection.env['ir.module.module']
         module_id = MODULES.search([['name', '=', module_name]])
 
         if not module_id:
-            raise exceptions.ModuleNotFoundError(f"Module '{module_name}' not found")
+            raise exceptions.OdooModuleNotFoundError(f"Module '{module_name}' not found")
 
         module_object = MODULES.browse(module_id)
         return module_object
@@ -212,13 +249,13 @@ class OdooConnection:
                 print(f"{Fore.CYAN}Module {module_name} already installed{Style.RESET_ALL}")
                 logger.info(f"Module {module_name} already installed")
                 return True  # Already in desired state = success
-        except exceptions.ModuleNotFoundError as e:
+        except exceptions.OdooModuleNotFoundError as e:
             print(f"{Fore.RED}✗ {e}{Style.RESET_ALL}")
             logger.error(str(e))
             return False
         except Exception as e:
             print(f"{Fore.RED}✗ Error installing {module_name}: {e}{Style.RESET_ALL}")
-            logger.error(f"Error installing {module_name}: {e}")
+            logger.exception(f"Error installing {module_name}")
             return False
 
     def uninstall_module(self, module_name: str, check_dependencies: bool = True) -> bool:
@@ -256,13 +293,13 @@ class OdooConnection:
                 print(f"{Fore.CYAN}Module {module_name} already uninstalled{Style.RESET_ALL}")
                 logger.info(f"Module {module_name} already uninstalled")
                 return True  # Already in desired state = success
-        except exceptions.ModuleNotFoundError as e:
+        except exceptions.OdooModuleNotFoundError as e:
             print(f"{Fore.RED}✗ {e}{Style.RESET_ALL}")
             logger.error(str(e))
             return False
         except Exception as e:
             print(f"{Fore.RED}✗ Error uninstalling {module_name}: {e}{Style.RESET_ALL}")
-            logger.error(f"Error uninstalling {module_name}: {e}")
+            logger.exception(f"Error uninstalling {module_name}")
             return False
 
     def update_module(self, module_name: str) -> bool:
@@ -291,13 +328,13 @@ class OdooConnection:
                 print(f"{Fore.RED}Module {module_name} is not installed, cannot update{Style.RESET_ALL}")
                 logger.warning(f"Module {module_name} is not installed, cannot update")
                 return False
-        except exceptions.ModuleNotFoundError as e:
+        except exceptions.OdooModuleNotFoundError as e:
             print(f"{Fore.RED}✗ {e}{Style.RESET_ALL}")
             logger.error(str(e))
             return False
         except Exception as e:
             print(f"{Fore.RED}✗ Error updating {module_name}: {e}{Style.RESET_ALL}")
-            logger.error(f"Error updating {module_name}: {e}")
+            logger.exception(f"Error updating {module_name}")
             return False
 
     def get_module_dependents(self, module_name: str) -> List[str]:
@@ -327,8 +364,8 @@ class OdooConnection:
 
             dependents = MODULES.browse(dependent_ids)
             return [dep.name for dep in dependents]
-        except Exception as e:
-            logger.error(f"Error getting dependents for {module_name}: {e}")
+        except Exception:
+            logger.exception(f"Error getting dependents for {module_name}")
             return []
 
     def get_module_dependencies(self, module_name: str) -> List[str]:
@@ -352,8 +389,8 @@ class OdooConnection:
                 dep_name = dep.name
                 dependencies.append(dep_name)
             return dependencies
-        except Exception as e:
-            logger.error(f"Error getting dependencies for {module_name}: {e}")
+        except Exception:
+            logger.exception(f"Error getting dependencies for {module_name}")
             return []
 
     def get_all_modules_status(self) -> Dict[str, List[Dict[str, str]]]:
@@ -396,6 +433,6 @@ class OdooConnection:
                     })
 
             return result
-        except Exception as e:
-            logger.error(f"Error getting module status: {e}")
+        except Exception:
+            logger.exception("Error getting module status")
             return {}

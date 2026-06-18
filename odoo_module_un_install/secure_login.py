@@ -94,13 +94,13 @@ def get_password(
     # First try environment variable if specified
     if env_var and env_var in os.environ:
         password = os.environ[env_var]
-        logger.info(f"Using password from environment variable {env_var}")
+        logger.debug(f"Using password from environment variable {env_var}")
 
     # Then try keyring if enabled
     if not password and use_keyring:
         password = get_stored_password(username, server_url)
         if password:
-            logger.info(f"Using password from keyring for {username} at {server_url}")
+            logger.debug(f"Using password from keyring for {username} at {server_url}")
 
     # Finally prompt user if still no password
     if not password:

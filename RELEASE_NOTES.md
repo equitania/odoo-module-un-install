@@ -1,5 +1,23 @@
 # Release Notes
 
+## Version 1.2.1 (18.06.2026)
+
+### Security
+- Log file now defaults to a user-owned directory (`~/.odoo_module_un_install/`) instead of the world-readable system temp directory, so connection metadata (server URLs, usernames, database names) is no longer exposed to other local users
+- `ODOO_MODULE_LOG_DIR` override is now validated to point at an existing directory before it is trusted
+- Credential-source confirmation messages downgraded from INFO to DEBUG so they no longer reach the log file
+
+### Changed
+- Raised minimum `odoorpc-toolbox` requirement to `>=0.8.2`
+- Renamed custom exception `ModuleNotFoundError` to `OdooModuleNotFoundError` to stop shadowing the Python builtin
+- Broad exception handlers now use `logger.exception()` to preserve full tracebacks instead of swallowing them
+
+### Fixed
+- `--update_modules` now reads the `Install:` list as documented; it previously read a non-existent `Update:` key and silently did nothing
+- Interactive database selection no longer crashes on non-numeric or out-of-range input (validation loop) and raises a clear error in non-interactive contexts (pipes, CI, parallel runs) instructing the user to set `ODOO_DATABASE`
+
+---
+
 ## Version 1.2.0 (11.03.2026)
 
 ### Changed

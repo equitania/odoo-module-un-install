@@ -269,7 +269,7 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
 
             if update_modules:
                 _process_operation(
-                    connection, module_object.get("Update", []),
+                    connection, module_object.get("Install", []),
                     connection.update_module,
                     "update", connection_url, results,
                     check_dependencies, parallel, max_workers,
@@ -282,7 +282,7 @@ def run(server_path, module_path, uninstall_modules, install_modules, update_mod
         # Display summary
         display_summary(results, "operation")
     except Exception as e:
-        logger.error(f"Error executing operation: {e}")
+        logger.exception("Error executing operation")
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
 
 

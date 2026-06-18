@@ -7,7 +7,6 @@
 import concurrent.futures
 import logging
 import os
-import tempfile
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -39,9 +38,22 @@ def setup_logging(verbose: bool = False) -> str:
         >>> log_file = setup_logging(verbose=True)
         >>> logger.info("This will be shown on console and in file")
     """
-    # Configure log file location
-    log_dir = os.environ.get('ODOO_MODULE_LOG_DIR', tempfile.gettempdir())
-    log_file = os.path.join(log_dir, 'odoo_module_un_install.log')
+    # Configure log file location.
+    # Default to a user-owned directory instead of the world-readable system temp
+    # dir, so connection metadata (server URLs, usernames, database names) is not
+    # exposed to other local users. An explicit ODOO_MODULE_LOG_DIR override is
+    # validated to point at an existing directory before it is trusted.
+    log_dir_override = os.environ.get('ODOO_MODULE_LOG_DIR')
+    if log_dir_override:
+        log_dir = Path(log_dir_override).expanduser().resolve()
+        if not log_dir.is_dir():
+            raise exceptions.PathDoesNotExistError(
+                f"ODOO_MODULE_LOG_DIR does not point to an existing directory: {log_dir}"
+            )
+    else:
+        log_dir = Path.home() / '.odoo_module_un_install'
+        log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = str(log_dir / 'odoo_module_un_install.log')
 
     # Remove existing handlers to avoid duplicates
     root_logger = logging.getLogger()
@@ -428,7 +440,7 @@ def analyze_dependencies(
                     result['dependent'][module] = dependents
                 else:
                     result['ready'].append(module)
-            except exceptions.ModuleNotFoundError:
+            except exceptions.OdooModuleNotFoundError:
                 result['missing'].append(module)
             except Exception as e:
                 logger.error(f"Error analyzing dependencies for {module}: {e}")
@@ -446,7 +458,7 @@ def analyze_dependencies(
                             dep_obj = connection._get_module_object(dep)
                             if dep_obj.state != 'installed':
                                 missing_deps.append(dep)
-                        except exceptions.ModuleNotFoundError:
+                        except exceptions.OdooModuleNotFoundError:
                             missing_deps.append(dep)
 
                     if missing_deps:
@@ -455,7 +467,7 @@ def analyze_dependencies(
                         result['ready'].append(module)
                 else:
                     result['ready'].append(module)
-            except exceptions.ModuleNotFoundError:
+            except exceptions.OdooModuleNotFoundError:
                 result['missing'].append(module)
             except Exception as e:
                 logger.error(f"Error analyzing dependencies for {module}: {e}")
@@ -469,7 +481,7 @@ def analyze_dependencies(
                     result['ready'].append(module)
                 else:
                     result['not_installed'].append(module)
-            except exceptions.ModuleNotFoundError:
+            except exceptions.OdooModuleNotFoundError:
                 result['missing'].append(module)
             except Exception as e:
                 logger.error(f"Error analyzing status for {module}: {e}")
